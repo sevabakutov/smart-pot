@@ -233,6 +233,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -1162,11 +1163,13 @@ name = "smart-pot"
 version = "0.1.0"
 dependencies = [
  "azure_iot_sdk",
+ "chrono",
  "config",
  "dotenv",
  "env_logger",
  "log",
  "serde",
+ "thiserror 2.0.12",
  "tokio",
 ]
 
