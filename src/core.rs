@@ -15,7 +15,6 @@ use telemtry::Telemetry;
 /// # SmartPotError
 #[derive(Error, Debug)]
 pub enum SmartPotError {
-
     #[error("Initialization error:\n{0}")]
     InitializationError(String),
     #[error("Reading enviroment variable error: \n{0}")]
@@ -41,7 +40,7 @@ impl IoTHub {
             ACCESS_KEY,
         ).unwrap();
 
-        let client = IoTHubClient::new(&iothub_hostname, device_id.into(), token_source)
+        let client = IoTHubClient::new(&iothub_hostname, device_id, token_source)
             .await
             .map_err(|error| SmartPotError::InitializationError(error.to_string()))?;
 

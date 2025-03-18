@@ -2,4 +2,4 @@
 //! File with constants.
 //! 
 
-pub static ACCESS_KEY: &'static str = "TheAccessKey";
+pub static ACCESS_KEY: &str = "TheAccessKey";
