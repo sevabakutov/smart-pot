@@ -50,10 +50,10 @@ impl IoTHub {
     /// Register device and returns IoTHub.
     pub async fn register_device() -> Result<Self> {
         let scope_id = std::env::var("DPS_SCOPE_ID")?;
-        let devide_id = std::env::var("DPS_DEVICE_ID")?;
+        let device_id = std::env::var("DPS_DEVICE_ID")?;
         let device_key = std::env::var("DPS_DEVICE_KEY")?;
     
-        let client = IoTHubClient::from_provision_service(&scope_id, devide_id, &device_key, 5)
+        let client = IoTHubClient::from_provision_service(&scope_id, device_id, &device_key, 5)
             .await
             .map_err(|error| SmartPotError::InitializationError(error.to_string()))?;
 
