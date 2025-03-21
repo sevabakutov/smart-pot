@@ -1,8 +1,7 @@
 
 mod private {
-    use std::env::VarError;
     use config::ConfigError;
-    use serde::Deserialize;
+    use rumqttc::ClientError;
     use thiserror::Error;
 
     /// # SmartPotError
@@ -10,14 +9,9 @@ mod private {
     pub enum SmartPotError {
         #[error("Config error:\n{0}")]
         ConfigError(#[from] ConfigError),
-        
-        // #[error("Initialization error:\n{0}")]
-        // InitializationError(String),
 
-        // #[error("Reading enviroment variable error: \n{0}")]
-        // EnvError(#[from] VarError),
-
-
+        #[error("Client error:\n{0}")]
+        ClientError(#[from] ClientError)
     }
 
     /// Shortcut for std::result::Result<T, SmartPotError>

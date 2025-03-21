@@ -6,23 +6,39 @@ mod private {
     use config::{Config, Environment, File};
     use serde::Deserialize;
 
-    use crate::core::{Result, SmartPotError};
+    use crate::core::Result;
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct DeviceSettings {
         id: String
     }
 
-    #[derive(Debug, Deserialize)]
-    pub struct HubSettings {
-        pub host: String,
-        pub port: u16
+    impl DeviceSettings {
+        pub fn id(&self) -> &String {
+            &self.id
+        } 
     }
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
+    pub struct HubSettings {
+        host: String,
+        port: u16
+    }
+
+    impl HubSettings {
+        pub fn host(&self) -> &String {
+            &self.host
+        }
+
+        pub fn port(&self) -> u16 {
+            self.port
+        }
+    }
+
+    #[derive(Debug, Deserialize, Clone)]
     pub struct Settings {
-        pub hub: HubSettings,
-        pub device: DeviceSettings
+        hub: HubSettings,
+        device: DeviceSettings
     }
 
     impl Settings {
@@ -32,7 +48,15 @@ mod private {
                 .add_source(Environment::with_prefix("CONF").separator("__"))
                 .build()?
                 .try_deserialize()
-                .map_err(|err| SmartPotError::ConfigError(err))
+                .map_err(Into::into)
+        }
+
+        pub fn hub(&self) -> &HubSettings {
+            &self.hub
+        }
+
+        pub fn device(&self) -> &DeviceSettings {
+            &self.device
         }
     }
 }

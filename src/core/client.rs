@@ -1,65 +1,43 @@
 
 mod private {
-    use rumqttc::MqttOptions;
+    use rumqttc::{AsyncClient, EventLoop, MqttOptions, QoS};
+    use crate::{config::Settings, core::Result};
 
-    use crate::*;
-
-    #[derive(Debug)]
     pub struct IoTHub {
-        endpoint: String,
-        opts: MqttOptions,
-
+        pub client: AsyncClient,
+        eventloop: EventLoop,
+        settings: Settings
     }
 
     impl IoTHub {
-        fn from_settings() -> Self {
-            unimplemented!()
+        pub fn from_settings(settings: Settings) -> Self {
+            let id = settings.device().id().clone();
+            let host = settings.hub().host().clone();
+            let port = settings.hub().port();
+
+            let options = MqttOptions::new(id, host, port);
+            let (client, eventloop) = AsyncClient::new(options, 10);
+
+            Self { client, eventloop, settings: settings }
+        }
+
+        pub fn eventloop(&mut self) -> &mut EventLoop {
+            &mut self.eventloop
+        }
+
+        pub async fn send(&mut self, message: &str) -> Result<()> {
+            let topic = format!("devices/{}/messages/events/", self.settings.device().id());
+            
+            self.client
+                .publish(topic, QoS::AtLeastOnce, false, message)
+                .await
+                .map_err(Into::into)
         }
     }
-
-
-
-    // impl IoTHub {
-    //     /// Gets already registered device and returns IoTHub.
-    //     pub async fn new() -> Result<Self> {
-    //         let iothub_hostname = std::env::var("IOTHUB_HOSTNAME")?;
-    //         let device_id = std::env::var("DEVICE_ID")?;
-    //         let token_source = DeviceKeyTokenSource::new(
-    //             iothub_hostname.as_str(),
-    //             device_id.as_str(),
-    //             ACCESS_KEY,
-    //         ).unwrap();
-
-    //         let client = IoTHubClient::new(&iothub_hostname, device_id, token_source)
-    //             .await
-    //             .map_err(|error| SmartPotError::InitializationError(error.to_string()))?;
-
-    //         Ok(Self { client })
-    //     }
-
-    //     /// Register device and returns IoTHub.
-    //     pub async fn register_device() -> Result<Self> {
-    //         let scope_id = std::env::var("DPS_SCOPE_ID")?;
-    //         let device_id = std::env::var("DPS_DEVICE_ID")?;
-    //         let device_key = std::env::var("DPS_DEVICE_KEY")?;
-        
-    //         let client = IoTHubClient::from_provision_service(&scope_id, device_id, &device_key, 5)
-    //             .await
-    //             .map_err(|error| SmartPotError::InitializationError(error.to_string()))?;
-
-    //         Ok(Self { client })
-    //     }
-
-    //     pub async fn get_telemtry(&self) -> Result<Telemetry> {
-    //         unimplemented!()
-    //     }
-
-    //     pub async fn send_telemetry(&self) -> Result<()> {
-    //         unimplemented!()
-    //     }
-    // }
 }
 
 crate::mod_interface! {
-
+    orphan use {
+        IoTHub
+    };
 }
