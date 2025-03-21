@@ -1,15 +1,23 @@
 
 mod private {
     use std::env::VarError;
+    use config::ConfigError;
+    use serde::Deserialize;
     use thiserror::Error;
 
     /// # SmartPotError
     #[derive(Error, Debug)]
     pub enum SmartPotError {
-        #[error("Initialization error:\n{0}")]
-        InitializationError(String),
-        #[error("Reading enviroment variable error: \n{0}")]
-        EnvError(#[from] VarError)
+        #[error("Config error:\n{0}")]
+        ConfigError(#[from] ConfigError),
+        
+        // #[error("Initialization error:\n{0}")]
+        // InitializationError(String),
+
+        // #[error("Reading enviroment variable error: \n{0}")]
+        // EnvError(#[from] VarError),
+
+
     }
 
     /// Shortcut for std::result::Result<T, SmartPotError>
@@ -17,5 +25,8 @@ mod private {
 }
 
 crate::mod_interface! {
-    
+    orphan use {
+        SmartPotError,
+        Result
+    };
 }

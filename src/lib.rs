@@ -5,4 +5,5 @@ mod private {}
 crate::mod_interface! {
     layer core;
     layer utils;
+    layer config;
 }

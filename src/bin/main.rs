@@ -1,7 +1,14 @@
+use std::path::PathBuf;
+use smart_pot::{config::Settings, core::Result};
+
 #[tokio::main]
-async fn main() -> azure_iot_sdk::Result<()> {
+async fn main() -> Result<()> {
     dotenv::dotenv().ok();
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-    
+
+    let path = PathBuf::from("Config.toml");
+    let settings = Settings::new(&path)?;
+
+    println!("Final configuration:\n{:#?}", settings);
+
     Ok(())
 }
