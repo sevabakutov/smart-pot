@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-azure_iot_sdk = "0.8.0"
 chrono = { version = "0.4.40", features = ["serde"] }
 config = "0.15.11"
 dotenv = "0.15.0"
 env_logger = "0.11.7"
 log = "0.4.26"
+mod_interface = "0.30.0"
 serde = { version = "1.0.219", features = ["derive"] }
 thiserror = "2.0.12"
 tokio = { version = "1.44.1", features = ["full"] }
