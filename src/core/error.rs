@@ -1,4 +1,3 @@
-
 mod private {
     use config::ConfigError;
     use rumqttc::ClientError;
@@ -11,7 +10,13 @@ mod private {
         ConfigError(#[from] ConfigError),
 
         #[error("Client error:\n{0}")]
-        ClientError(#[from] ClientError)
+        ClientError(#[from] ClientError),
+
+        #[error("IO error:\n{0}")]
+        IoError(#[from] std::io::Error),
+
+        #[error("TLS error:\n{0}")]
+        TLSError(String),
     }
 
     /// Shortcut for std::result::Result<T, SmartPotError>

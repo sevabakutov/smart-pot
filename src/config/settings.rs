@@ -1,7 +1,7 @@
 
 
 mod private {
-    use std::path::PathBuf;
+    use std::path::Path;
 
     use config::{Config, Environment, File};
     use serde::Deserialize;
@@ -42,9 +42,9 @@ mod private {
     }
 
     impl Settings {
-        pub fn new(path: &PathBuf) -> Result<Self> {
+        pub fn new(path: &Path) -> Result<Self> {
             Config::builder()
-                .add_source(File::from(path.as_path()).required(true))
+                .add_source(File::from(path).required(true))
                 .add_source(Environment::with_prefix("CONF").separator("__"))
                 .build()?
                 .try_deserialize()

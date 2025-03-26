@@ -1,2 +1,6 @@
 /target
 .env
+Config.toml
+device-cert.pem
+device.csr
+device.key

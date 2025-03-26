@@ -1,0 +1,6 @@
+# [hub]
+# host = "your-hub-name.azure-devices.net"
+# port = port (integer, 443, 8883, etc..) 
+
+# [device]
+# id = "your-device-id"
