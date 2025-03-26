@@ -1,6 +1,0 @@
-[hub]
-host = "smart-pot-hub.azure-devices.net"
-port = 8883
-
-[device]
-id = "device-seva"
