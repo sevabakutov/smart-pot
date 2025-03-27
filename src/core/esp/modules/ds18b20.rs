@@ -1,7 +1,3 @@
-//!
-//! File with structures for interaction with ESP32.
-//!
-
 mod private {
     use crate::core::{Result, SmartPotError};
     use chrono::serde::ts_seconds;
