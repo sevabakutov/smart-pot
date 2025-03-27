@@ -13,7 +13,7 @@ mod private {
         wifi::{AsyncWifi, EspWifi},
     };
 
-    pub fn wifi(
+    pub async fn wifi(
         ssid: &'static str,
         password: &'static str,
         modem: impl Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
@@ -21,14 +21,13 @@ mod private {
         nvs: Option<EspNvsPartition<NvsDefault>>,
         timer_service: &EspTimerService<Task>,
     ) -> Result<AsyncWifi<EspWifi<'static>>> {
-        use futures::executor::block_on;
         let mut wifi = AsyncWifi::wrap(
             EspWifi::new(modem, sysloop.clone(), nvs)?,
             sysloop.clone(),
             timer_service.clone(),
         )?;
 
-        block_on(connect(&mut wifi, ssid, password))?;
+        connect(&mut wifi, ssid, password).await?;
 
         let ip_info = wifi.wifi().sta_netif().get_ip_info()?;
 
@@ -59,13 +58,8 @@ mod private {
         wifi.set_configuration(&wifi_configuration)?;
 
         wifi.start().await?;
-        log::info!("Wifi started");
-
         wifi.connect().await?;
-        log::info!("Wifi connected");
-
         wifi.wait_netif_up().await?;
-        log::info!("Wifi netif up");
 
         Ok(())
     }

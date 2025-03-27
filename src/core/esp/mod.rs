@@ -22,7 +22,7 @@ mod private {
     }
 
     impl Board<'_> {
-        pub fn init_board<'a>(
+        pub async fn init_board<'a>(
             wifi_ssid: &'static str,
             wifi_password: &'static str,
         ) -> Result<Board<'a>> {
@@ -39,7 +39,7 @@ mod private {
                 &sysloop,
                 nvs,
                 &timer_service,
-            )?;
+            ).await?;
 
             let ds_pin = PinDriver::input_output_od(peripherals.pins.gpio16.downgrade())?;
             let one_wire_bus = one_wire_bus::OneWire::new(ds_pin).map_err(|e| {

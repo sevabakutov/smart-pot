@@ -1,9 +1,9 @@
-use esp_idf_hal::delay::Ets;
+use std::time::Duration;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
 use smart_pot::core::{esp::Board, Result};
 
-static SSID: &str = "kievskaya_hunta";
-static PASS: &str = "fourtyeighteen";
+static SSID: &str = env!("WIFI_SSID");
+static PASS: &str = env!("WIFI_PASS");
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -11,13 +11,13 @@ async fn main() -> Result<()> {
     esp_idf_svc::log::EspLogger::initialize_default();
 
     let mut board = loop {
-        match Board::init_board(SSID, PASS) {
+        match Board::init_board(SSID, PASS).await {
             Ok(board) => break board,
             Err(e) => {
                 log::error!("Error while initialize board:{e:?}")
             }
         }
-        Ets::delay_ms(5000);
+        std::thread::sleep(Duration::from_secs(5));
     };
     let sensor = &mut board.ds18b20_sensors[0];
 
@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
         let temp = sensor.read_temperature();
         log::info!("{temp:?}");
 
-        Ets::delay_ms(600);
+        std::thread::sleep(Duration::from_secs(5));
     }
 
     // let (hub, mut eventloop) = IoTHub::from_settings(settings)?;

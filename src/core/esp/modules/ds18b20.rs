@@ -2,7 +2,6 @@ mod private {
     use crate::core::{Result, SmartPotError};
     use chrono::serde::ts_seconds;
     use chrono::{DateTime, Utc};
-    use esp_idf_hal::delay::Ets;
     use esp_idf_hal::gpio::{InputOutput, InputPin, OutputPin, PinDriver};
     use esp_idf_sys::EspError;
     use one_wire_bus::OneWire;
@@ -38,7 +37,7 @@ mod private {
         ) -> Result<Vec<Ds18B20Sensor<'a, T>>> {
             let mut search_state = None;
 
-            let mut delay = Ets {};
+            let mut delay = esp_idf_hal::delay::Delay::new_default();
             let mut ds_sensors: Vec<ds18b20::Ds18b20> = vec![];
             while let Some((device_address, state)) = one_wire_bus
                 .borrow_mut()
@@ -74,8 +73,7 @@ mod private {
         }
 
         pub fn read_temperature(&self) -> Result<TemperatureSensorData> {
-            let mut delay = Ets {};
-
+            let mut delay = esp_idf_hal::delay::Delay::new_default();
             ds18b20::start_simultaneous_temp_measurement(
                 &mut self.one_wire_bus.borrow_mut(),
                 &mut delay,
