@@ -11,16 +11,15 @@ use embedded_svc::{
     wifi::{AuthMethod, ClientConfiguration, Configuration},
 };
 use esp_idf_hal::{
-    delay::FreeRtos,
-    gpio::{IOPin, InputPin, OutputPin, Pin},
-    peripheral::PeripheralRef,
-    units::*,
-};
-use esp_idf_hal::{
     gpio::PinDriver,
     ledc::{config::TimerConfig, LedcDriver, LedcTimerDriver},
     peripheral::Peripheral,
     prelude::Peripherals,
+};
+use esp_idf_hal::{
+    gpio::{Gpio16, IOPin, InputPin, OutputPin, Pin},
+    peripheral::PeripheralRef,
+    units::*,
 };
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
@@ -48,7 +47,7 @@ struct Board<'a> {
     ds18b20_sensors: Vec<Ds18B20Sensor<'a, AnyIOPin>>,
 }
 
-fn init_board<'a, T: InputPin + OutputPin>() -> Result<Board<'a>> {
+fn init_board<'a>() -> Result<Board<'a>> {
     let peripherals: Peripherals = Peripherals::take()?;
     let sysloop = EspSystemEventLoop::take()?;
     let timer_service = EspTaskTimerService::new()?;
@@ -79,13 +78,8 @@ async fn main() -> Result<()> {
     //env_logger::init();
     //let settings = Settings::new(&path)?;
 
-    let mut peripherals: Peripherals = Peripherals::take().unwrap();
-
-    let ds_pin = PinDriver::input_output_od(peripherals.pins.gpio16).unwrap();
-
-    let modem: &mut esp_idf_hal::modem::Modem = &mut peripherals.modem;
     loop {
-        //      let board = init_board();
+        let board = init_board();
     }
 
     // let (hub, mut eventloop) = IoTHub::from_settings(settings)?;
