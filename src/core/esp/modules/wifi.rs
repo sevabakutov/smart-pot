@@ -1,8 +1,5 @@
 mod private {
     use crate::core::Result;
-    use heapless::String;
-    use std::str::FromStr;
-
     use embedded_svc::wifi::{AuthMethod, ClientConfiguration, Configuration};
     use esp_idf_hal::peripheral::Peripheral;
     use esp_idf_svc::{
@@ -12,6 +9,8 @@ mod private {
         timer::{EspTimerService, Task},
         wifi::{AsyncWifi, EspWifi},
     };
+    use heapless::String;
+    use std::str::FromStr;
 
     pub async fn wifi(
         ssid: &'static str,
@@ -60,6 +59,8 @@ mod private {
         wifi.start().await?;
         wifi.connect().await?;
         wifi.wait_netif_up().await?;
+
+        log::info!("Wifi connected");
 
         Ok(())
     }

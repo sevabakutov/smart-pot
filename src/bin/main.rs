@@ -1,6 +1,6 @@
-use std::time::Duration;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
 use smart_pot::core::{esp::Board, Result};
+use std::time::Duration;
 
 static SSID: &str = env!("WIFI_SSID");
 static PASS: &str = env!("WIFI_PASS");

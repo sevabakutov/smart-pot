@@ -14,7 +14,8 @@ mod private {
         wifi::{AsyncWifi, EspWifi},
     };
 
-    use std::{cell::RefCell, rc::Rc};
+    use esp_idf_svc::sntp::{EspSntp, SyncStatus};
+    use std::{cell::RefCell, rc::Rc, time::Duration};
 
     pub struct Board<'a> {
         pub wifi: AsyncWifi<EspWifi<'a>>,
@@ -39,7 +40,10 @@ mod private {
                 &sysloop,
                 nvs,
                 &timer_service,
-            ).await?;
+            )
+            .await?;
+
+            let ntp = EspSntp::new_default()?;
 
             let ds_pin = PinDriver::input_output_od(peripherals.pins.gpio16.downgrade())?;
             let one_wire_bus = one_wire_bus::OneWire::new(ds_pin).map_err(|e| {
@@ -48,6 +52,10 @@ mod private {
 
             let onewire_ref = Rc::from(RefCell::from(one_wire_bus));
             let ds18b20_sensors = Ds18B20Sensor::find_all(onewire_ref.clone())?;
+
+            while ntp.get_sync_status() != SyncStatus::Completed {
+                std::thread::sleep(Duration::from_millis(20));
+            }
 
             Ok(Board {
                 wifi,
