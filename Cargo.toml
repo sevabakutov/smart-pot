@@ -8,12 +8,9 @@ chrono = { version = "0.4.40", features = ["serde"] }
 config = "0.15.11"
 dotenv = "0.15.0"
 env_logger = "0.11.7"
+esp-idf-svc = "0.51.0"
 log = "0.4.26"
 mod_interface = "0.30.0"
-rumqttc = "0.24.0"
-rustls-pemfile = "2.2.0"
 serde = { version = "1.0.219", features = ["derive"] }
 thiserror = "2.0.12"
-tokio = { version = "1.44.1", features = ["full"] }
-tokio-rustls = "0.26.2"
-webpki-roots = "0.26.8"
+tokio = { version = "1.44.1", features = ["rt", "rt-multi-thread", "macros"] }

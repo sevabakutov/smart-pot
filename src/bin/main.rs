@@ -13,7 +13,7 @@ async fn main() -> Result<()> {
     let path = PathBuf::from("Config.toml");
     let settings = Settings::new(&path)?;
 
-    let (hub, mut eventloop) = IoTHub::from_settings(settings)?;
+    let (_hub, mut eventloop) = IoTHub::from_settings(settings)?;
 
     tokio::spawn(async move {
         loop {
