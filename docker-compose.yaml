@@ -1,0 +1,12 @@
+version: "3"
+services:
+  esp:
+    image: espressif/idf-rust:esp32s3_1.85.0.0
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+    volumes:
+      - .:/home/smart-pot
+    working_dir: /home/smart-pot
+    env_file:
+      - .env
+    command: cargo build

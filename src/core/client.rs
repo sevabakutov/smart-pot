@@ -1,76 +1,115 @@
+// core.rs
 mod private {
-    use crate::{
-        config::Settings,
-        core::{Result, SmartPotError},
-    };
-    use log::info;
-    use rumqttc::tokio_rustls::rustls::{ClientConfig, RootCertStore};
-    use rumqttc::{AsyncClient, EventLoop, MqttOptions, QoS, TlsConfiguration, Transport};
-    use std::{sync::Arc, time::Duration};
-    use tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject};
+    use crate::*;
+    use crate::core::{Result, SmartPotError};
 
+    use std::time::Duration;
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    use urlencoding::encode;
+
+    use esp_idf_svc::tls;
+    use esp_idf_svc::mqtt::client::{
+        EspAsyncMqttClient, MqttClientConfiguration, MqttConnection, MqttProtocolVersion
+    };
+    use embedded_svc::mqtt::client::Client;
+    use esp_idf_sys::EspError;
+
+    /// # IoTHub
+    /// 
+    /// A simple Azure IoT Hub MQTT wrapper.
     pub struct IoTHub {
-        pub client: AsyncClient,
-        settings: Settings,
+        pub client: EspAsyncMqttClient,
+        pub connection: MqttConnection,
     }
 
     impl IoTHub {
-        pub fn from_settings(settings: Settings) -> Result<(Self, EventLoop)> {
-            let id = settings.device().id().clone();
-            let host = settings.hub().host().clone();
-            let port = settings.hub().port();
+        /// Creates a new IoTHub client with SAS auth
+        pub fn new(
+            hub_name: &str,
+            device_id: &str,
+            sas_token: &str,
+        ) -> Result<Self> {
+            // Initialize the global CA store (required for SSL)
+            tls::esp_tls_init_global_ca_store()?;
 
-            let mut options = MqttOptions::new(id, host, port);
+            let broker_url = format!("ssl://{}.azure-devices.net:8883", hub_name);
 
-            let tls_config = Self::create_tls_config()?;
+            // Azure requires:
+            //   - client_id = device_id
+            //   - username = "{hub_name}.azure-devices.net/{device_id}/?api-version=2021-06-30"
+            let client_id = device_id.to_string();
+            let username = format!("{hub_name}.azure-devices.net/{device_id}/?api-version=2021-06-30");
 
-            options.set_keep_alive(Duration::from_secs(10));
-            options.set_transport(Transport::Tls(tls_config));
+            let mqtt_config = MqttClientConfiguration {
+                protocol_version: Some(MqttProtocolVersion::V3_1_1),
+                client_id: Some(client_id),
+                username: Some(username),
+                password: Some(sas_token.to_string()),
 
-            let (client, eventloop) = AsyncClient::new(options, 10);
+                use_global_ca_store: true,
+                crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
 
-            Ok((Self { client, settings }, eventloop))
+                keep_alive_interval: Some(Duration::from_secs(60)),
+                reconnect_timeout: Some(Duration::from_secs(5)),
+                clean_session: true,
+                ..Default::default()
+            };
+
+            let (client, connection) = EspAsyncMqttClient::new(broker_url, &mqtt_config)?;
+
+            Ok(Self { client, connection })
         }
 
-        pub async fn send(&self, message: &str) -> Result<()> {
-            let topic = format!("devices/{}/messages/events/", self.settings.device().id());
-            info!("Sending: '{}' to '{}' endpoint", message, topic);
-
+        /// Sends a message to Azur.
+        pub async fn send_message(
+            &mut self,
+            topic: &str,
+            payload: &str
+        ) -> std::result::Result<(), EspError> {
             self.client
-                .publish(topic, QoS::AtLeastOnce, false, message)
+                .publish(topic, embedded_svc::mqtt::client::QoS::AtLeastOnce, false, payload.as_bytes())
                 .await
-                .map_err(Into::into)
         }
+    }
 
-        fn create_tls_config() -> Result<TlsConfiguration> {
-            let mut root_store = RootCertStore::empty();
+    /// Generate an Azure IoT SAS token
+    pub fn generate_sas_token(
+        hub_name: &str,
+        device_id: &str,
+        key: &str,
+        expiry_unix_ts: u64,
+    ) -> String {
+        let to_sign = format!(
+            "{}.azure-devices.net/devices/{}\n{}",
+            hub_name,
+            device_id,
+            expiry_unix_ts
+        );
 
-            let cert_chain = CertificateDer::pem_file_iter("device-cert.pem")
-                .map_err(|err| SmartPotError::TLSError(err.to_string()))?
-                .flatten()
-                .collect::<Vec<_>>();
+        let key_bytes = STANDARD.decode(key).unwrap();
 
-            for der in cert_chain.iter() {
-                root_store
-                    .add(der.clone())
-                    .map_err(|err| SmartPotError::TLSError(err.to_string()))?;
-            }
+        let mut mac = Hmac::<Sha256>::new_from_slice(&key_bytes).unwrap();
+        mac.update(to_sign.as_bytes());
+        let signature = mac.finalize().into_bytes();
 
-            let key_der = PrivateKeyDer::from_pem_file("device.key")
-                .map_err(|err| SmartPotError::TLSError(err.to_string()))?;
+        let sig_base64 = STANDARD.encode(signature);
 
-            let conf = ClientConfig::builder()
-                .with_root_certificates(root_store)
-                .with_client_auth_cert(cert_chain, key_der)
-                .map_err(|err| SmartPotError::TLSError(err.to_string()))?;
-
-            Ok(TlsConfiguration::Rustls(Arc::new(conf)))
-        }
+        format!(
+            "SharedAccessSignature sr={}&sig={}&se={}",
+            encode(&resource_uri),
+            encode(&sig_base64),
+            expiry_unix_ts
+        )
     }
 }
 
 crate::mod_interface! {
     orphan use {
         IoTHub
+    };
+    own use {
+        generate_sas_token
     };
 }
