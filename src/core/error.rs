@@ -10,8 +10,6 @@ mod private {
         #[error("Config error:\n{0}")]
         ConfigError(#[from] ConfigError),
 
-        //        #[error("Client error:\n{0}")]
-        //        ClientError(#[from] ClientError),
         #[error("IO error:\n{0}")]
         IoError(#[from] std::io::Error),
 
@@ -23,6 +21,9 @@ mod private {
 
         #[error("OneWire error:\n{0}")]
         OneWireError(String),
+
+        #[error("{0}")]
+        PrsingError(String)
     }
 
     /// Shortcut for std::result::Result<T, SmartPotError>

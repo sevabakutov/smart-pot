@@ -1,5 +1,6 @@
 /target
 .env
+Cargo.lock
 Config.toml
 device-cert.pem
 device.csr

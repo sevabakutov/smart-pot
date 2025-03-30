@@ -1,7 +1,5 @@
 target
 .embuild
-Dockerfile
 Cargo.lock
 Config.example.toml
 .gitignore
-Dockerfile
