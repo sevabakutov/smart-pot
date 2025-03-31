@@ -1,7 +1,8 @@
 mod private {}
 
 crate::mod_interface! {
-    layer client;
+    layer azure;
     layer error;
     layer esp;
+    layer task;
 }
