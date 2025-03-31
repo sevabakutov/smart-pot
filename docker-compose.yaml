@@ -1,6 +1,7 @@
 services:
   esp:
     image: espressif/idf-rust:esp32s3_1.85.0.0
+    user: root
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
     group_add:

@@ -19,7 +19,6 @@ use esp_idf_svc::timer::{EspTimerService, EspAsyncTimer};
 
 use esp_idf_hal::gpio::AnyIOPin;
 
-
 // Environment vars or constants
 const SSID: &str = env!("WIFI_SSID");
 const PASS: &str = env!("WIFI_PASS");
