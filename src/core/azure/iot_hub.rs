@@ -11,7 +11,6 @@ mod private {
         EspAsyncMqttConnection, 
         MqttProtocolVersion
     };
-    
 
     /// # IoTHub
     /// 
@@ -28,7 +27,7 @@ mod private {
             device_id: &str,
             sas_token: &str,
         ) -> Result<Self> {
-            let broker_url = format!("ssl://{}.azure-devices.net:8883", hub_name);
+            let broker_url = format!("mqtts://{}.azure-devices.net:8883", hub_name);
             let username = format!("{hub_name}.azure-devices.net/{device_id}/?api-version=2021-06-30");
 
             let mqtt_config = MqttClientConfiguration {
