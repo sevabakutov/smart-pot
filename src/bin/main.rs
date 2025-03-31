@@ -4,7 +4,11 @@ use core::pin::pin;
 use core::time::Duration;
 
 use log::*;
-use anyhow::Result;
+
+use smart_pot::core::error::SmartPotError;
+use smart_pot::core::esp::board::Board;
+use smart_pot::core::azure::IoTHub;
+use smart_pot::core::esp::Sensor;
 
 use embassy_futures::select::{select, Either};
 
@@ -13,13 +17,15 @@ use esp_idf_svc::sys::link_patches;
 use esp_idf_svc::log::EspLogger;
 use esp_idf_svc::timer::{EspTimerService, EspAsyncTimer};
 
-use embedded_svc::mqtt::client::{QoS, Event, Client};
-use esp_idf_sys::EspError;
+use esp_idf_hal::gpio::AnyIOPin;
+
+use std::sync::Arc;
+use embassy_sync::mutex::Mutex;
+use embedded_svc::mqtt::client::Event;
 
 use smart_pot::core::{
-    esp::Board,
-    IoTHub,
-    generate_sas_token,
+    Result,
+    azure::generate_sas_token,
 };
 
 // Environment vars or constants
@@ -45,24 +51,19 @@ extern "C" fn app_main() {
 
 /// Main async entry point
 async fn async_main() -> Result<()> {
-    // 1. Initialize board (Wi-Fi, etc.)
-    let mut timer_svc = EspTimerService::new()?;
-    let mut timer = timer_svc.timer()?;
+    let timer_svc = EspTimerService::new()?;
+    let mut timer = timer_svc.timer_async()?;
 
-    let mut board = loop {
+    let board = loop {
         match Board::init_board(SSID, PASS).await {
             Ok(board) => break board,
             Err(e) => {
                 error!("Error initializing board: {e:?}");
             }
         }
-        // Retry every 5 seconds
         timer.after(Duration::from_secs(5)).await?;
     };
 
-    let sensor = &mut board.ds18b20_sensors[0];
-
-    // 2. Generate SAS token (valid for 1 hour)
     let expiry_unix_ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
@@ -72,11 +73,11 @@ async fn async_main() -> Result<()> {
     info!("SAS token generated. Expires at {expiry_unix_ts}");
 
     // 3. Create IoTHub client
-    let mut iothub = IoTHub::new(HUB_NAME, DEVICE_ID, &sas_token)?;
+    let iothub = Arc::new(Mutex::new(IoTHub::new(HUB_NAME, DEVICE_ID, &sas_token)?));
     info!("IoTHub client created. Connecting...");
 
     // 4. Run both tasks concurrently:
-    run(&mut iothub, &mut timer, sensor).await?;
+    run(iothub, &mut timer, &board.sensors).await?;
 
     Ok(())
 }
@@ -85,33 +86,34 @@ async fn async_main() -> Result<()> {
 ///  - Inbound messages listener
 ///  - Outbound telemetry publisher
 async fn run(
-    iothub: &mut IoTHub,
+    iothub: Arc<Mutex<IoTHub>>,
     timer: &mut EspAsyncTimer,
-    sensor: &mut smart_pot::sensors::DS18B20,
-) -> Result<(), EspError> {
+    sensors: &[Box<dyn Sensor<Pin=AnyIOPin>>],
+) -> Result<()> {
     let topic = format!("devices/{}/messages/events/", DEVICE_ID);
 
     // Construct the two tasks (futures)
-    let inbound = inbound_messages_task(&mut iothub.connection);
-    let outbound = telemetry_task(&mut iothub, sensor, timer, &topic);
+    let inbound = inbound_messages_task(iothub.clone());
+    let outbound = telemetry_task(iothub.clone(), sensors, timer, &topic);
 
     // Run both concurrently. `select` returns once either finishes/errors.
+    // TODO: use join instead of select.
     let res = select(pin!(inbound), pin!(outbound)).await;
 
     match res {
-        Either::First((Ok(()), _)) => {
+        Either::First(Ok(())) => {
             info!("Inbound messages task finished. Outbound task is canceled.");
             Ok(())
         }
-        Either::First((Err(e), _)) => {
+        Either::First(Err(e)) => {
             error!("Inbound messages task failed: {e:?}");
             Err(e)
         }
-        Either::Second((Ok(()), _)) => {
+        Either::Second(Ok(())) => {
             info!("Outbound telemetry task finished. Inbound task is canceled.");
             Ok(())
         }
-        Either::Second((Err(e), _)) => {
+        Either::Second(Err(e)) => {
             error!("Outbound telemetry task failed: {e:?}");
             Err(e)
         }
@@ -120,17 +122,16 @@ async fn run(
 
 /// Task #1: Continuously listen for inbound MQTT messages.
 async fn inbound_messages_task(
-    hub: &mut IoTHub
-) -> Result<(), EspError> {
+    hub: Arc<Mutex<IoTHub>>
+) -> Result<()> {
     info!("Starting inbound messages task...");
+
     while let Ok(event) = hub.connection.next().await {
         match event {
             Event::Received(msg) => {
                 info!("[MQTT Inbound] Payload = {}", msg.payload());
             }
-            other => {
-                info!("[MQTT Event] {:?}", other);
-            }
+            other => {}
         }
     }
 
@@ -140,25 +141,33 @@ async fn inbound_messages_task(
 
 /// Task #2: Read sensor data and publish to Azure IoT Hub at intervals
 async fn telemetry_task(
-    hub: &mut IoTHub,
-    sensor: &mut smart_pot::sensors::DS18B20,
+    hub: Arc<Mutex<IoTHub>>,
+    sensors: &[Box<dyn Sensor<Pin=AnyIOPin>>],
     timer: &mut EspAsyncTimer,
     topic: &str,
-) -> Result<(), EspError> {
+) -> Result<()> {
     info!("Starting outbound telemetry task...");
 
     loop {
-        let temp = sensor.read_temperature();
-        info!("Sensor reading: {:?}", temp);
+        for (index, sensor) in sensors.iter().enumerate() {
+            let sensor_data = sensor.read_temperature().map_err(|e| {
+                error!("Sensor #{} read error: {:?}", index, e);
+                e
+            })?;
+            info!("Sensor #{} => {:?}", index, sensor_data);
 
-        let payload = serde_json::to_string(&data)
-        .map_err(|e| {
-            error!("JSON serialization error: {:?}", e);
-            SmartPotError::ParsingError(e.to_string())
-        })?;
+            let payload = serde_json::to_string(&sensor_data).map_err(|e| {
+                error!("JSON serialization error: {:?}", e);
+                SmartPotError::ParsingError(e.to_string())
+            })?;
 
-        hub.send_message(topic, payload).await?;
-        info!("Published temperature={temp} to {topic}");
+            {
+                let mut locked_hub = hub.lock().await;
+                locked_hub.send_message(topic, &payload).await?;
+            }
+
+            info!("Published sensor #{} data to {topic}", index);
+        }
 
         timer.after(Duration::from_secs(5)).await?;
     }

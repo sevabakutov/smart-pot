@@ -29,7 +29,6 @@ log = "0.4.26"
 mod_interface = "0.30.0"
 serde = { version = "1.0.219", features = ["derive"] }
 thiserror = "2.0.12"
-# tokio = { version = "1.44.1", features = ["macros", "rt-multi-thread"] }
 esp-idf-svc = { version = "0.51", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
 esp-idf-sys = "0.36.1"
 esp-idf-hal = "0.45.2"
@@ -38,6 +37,13 @@ one-wire-bus = "0.1.1"
 futures = "0.3.28"
 embedded-svc = "0.28.1"
 heapless = "0.8.0"
+base64 = "0.22"
+hmac = "0.12"
+sha2 = "0.10"
+urlencoding = "2.1"
+embassy-futures = "0.1.1"
+serde_json = "1.0"
+embassy-sync = "0.6"
 
 [build-dependencies]
 embuild = "0.33"

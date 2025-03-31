@@ -23,7 +23,7 @@ mod private {
         OneWireError(String),
 
         #[error("{0}")]
-        PrsingError(String)
+        ParsingError(String)
     }
 
     /// Shortcut for std::result::Result<T, SmartPotError>
