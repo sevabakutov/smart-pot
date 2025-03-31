@@ -12,6 +12,14 @@ mod private {
         EspAsyncMqttConnection, 
         MqttProtocolVersion
     };
+    use esp_idf_sys::{
+        esp_tls_init_global_ca_store, 
+        esp_tls_set_global_ca_store,
+        esp_crt_bundle_attach, 
+        ESP_OK
+    };
+
+    const AZURE_IOT_CA_CERT: &[u8] = include_bytes!("azure_iot_root_ca.pem");
 
     /// # IoTHub
     /// 
@@ -29,8 +37,22 @@ mod private {
             sas_token: &str,
         ) -> Result<Self> {
             let code = unsafe { esp_idf_sys::esp_tls_init_global_ca_store() };
-            if code != 0 {
-                return Err(SmartPotError::CAError("failed to initialize global ca store".to_string()));
+            if init_code != ESP_OK as i32 {
+                return Err(SmartPotError::CAError(
+                    format!("failed to initialize global ca store (err={})", init_code)
+                ));
+            }
+
+            let set_code = unsafe {
+                esp_tls_set_global_ca_store(
+                    AZURE_IOT_CA_CERT.as_ptr() as *const u8,
+                    AZURE_IOT_CA_CERT.len() as u32,
+                )
+            };
+            if set_code != ESP_OK as i32 {
+                return Err(SmartPotError::CAError(
+                    format!("failed to set global ca store (err={})", set_code)
+                ));
             }
 
             let broker_url = format!("mqtts://{}.azure-devices.net:8883", hub_name);
