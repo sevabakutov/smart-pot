@@ -17,8 +17,11 @@ mod private {
         #[error("OneWire error:\n{0}")]
         OneWireError(String),
 
+        #[error("Dht error:\n{0}")]
+        DhtError(String),
+
         #[error("{0}")]
-        ParsingError(String)
+        ParsingError(String),
     }
 
     /// Shortcut for std::result::Result<T, SmartPotError>

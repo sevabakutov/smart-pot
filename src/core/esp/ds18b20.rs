@@ -1,13 +1,13 @@
 mod private {
-    use crate::core::{Result, SmartPotError};
-    use esp_idf_hal::gpio::{InputPin, OutputPin};
-    use std::cell::RefCell;
-    use std::rc::Rc;
-    use esp_idf_sys::EspError;
     use crate::core::esp::OneWireType;
     use crate::core::esp::Sensor;
+    use crate::core::Telemetry;
     use crate::core::TemperatureSensorData;
-
+    use crate::core::{Result, SmartPotError};
+    use esp_idf_hal::gpio::{InputPin, OutputPin};
+    use esp_idf_sys::EspError;
+    use std::cell::RefCell;
+    use std::rc::Rc;
     /// # TemperatureSensor
     ///
     /// Structure to interact with temperature sensor of ESP32.
@@ -19,17 +19,13 @@ mod private {
         ds_address: ds18b20::Ds18b20,
     }
 
-    impl<T> Sensor for Ds18B20Sensor<T> 
-    where 
-        T: InputPin + OutputPin
+    impl<T> Ds18B20Sensor<T>
+    where
+        T: InputPin + OutputPin,
     {
-        type Pin = T;
-
-        fn find_all(
-            one_wire_bus: Rc<RefCell<OneWireType<Self::Pin>>>,
-        ) -> Result<Vec<Box<Self>>>
+        pub fn find_all(one_wire_bus: Rc<RefCell<OneWireType<T>>>) -> Result<Vec<Box<Self>>>
         where
-            Self: Sized
+            Self: Sized,
         {
             let mut search_state = None;
 
@@ -70,8 +66,19 @@ mod private {
                 .collect::<Vec<Box<Ds18B20Sensor<T>>>>();
             Ok(sensors)
         }
+    }
 
-        fn read_temperature(&self) -> Result<TemperatureSensorData> {
+    impl<T> Sensor for Ds18B20Sensor<T>
+    where
+        T: InputPin + OutputPin,
+    {
+        type Pin = T;
+
+        fn get_name(&self) -> String {
+            "Ds18B20".to_string()
+        }
+
+        fn read_data(&mut self) -> Result<TemperatureSensorData> {
             let mut delay = esp_idf_hal::delay::Delay::new_default();
 
             ds18b20::start_simultaneous_temp_measurement(
@@ -95,7 +102,7 @@ mod private {
 
             Ok(TemperatureSensorData {
                 timestamp: chrono::Utc::now(),
-                temperature: sensor_data.temperature,
+                telemetry: Telemetry::Temperature(sensor_data.temperature),
             })
         }
     }
