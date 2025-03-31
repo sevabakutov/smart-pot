@@ -21,7 +21,6 @@ mod private {
 
     pub struct Board<'a> {
         pub wifi: AsyncWifi<EspWifi<'a>>,
-        // pub ds18b20_sensors: Vec<Ds18B20Sensor<'a, AnyIOPin>>,
         pub sensors: Vec<Box<dyn Sensor<Pin = AnyIOPin>>>
     }
 

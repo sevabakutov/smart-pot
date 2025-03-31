@@ -9,4 +9,4 @@ services:
     working_dir: /home/smart-pot
     env_file:
       - .env
-    command: cargo build
+    command: cargo run
