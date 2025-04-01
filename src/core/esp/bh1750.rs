@@ -52,14 +52,12 @@ mod private {
         /// - `Result<SensorData>`: A `SensorData` instance containing the timestamp and light intensity reading.
         ///
         /// # Errors:
-        /// This function returns a `SmartPotError::I2cError` if there is an error communicating with the sensor.
+        /// This function returns a `SmartPotError::Bh1750Error` if there is an error communicating with the sensor.
         fn read_data(&mut self) -> Result<SensorData> {
             let data = self
                 .sensor
                 .get_one_time_measurement(self.resolution)
-                .map_err(|err| {
-                    SmartPotError::I2cError(format!("Failed to get light sensor data: {err:?}"))
-                })?;
+                .map_err(|err| SmartPotError::Bh1750Error(err.into()))?;
 
             Ok(SensorData {
                 timestamp: chrono::Utc::now(),

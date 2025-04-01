@@ -1,6 +1,6 @@
 //!
 //!  Board module
-//! 
+//!
 
 mod private {
     use crate::core::esp::{wifi, Bh1750, DhtConfig, DhtSensor, Ds18B20Sensor, Sensor};
@@ -71,14 +71,14 @@ mod private {
             dht_configs: Vec<DhtConfig>,
             bh1750_i2c: Option<I2cDriver<'static>>,
             wifi_modem: Modem,
-            wifi_ssid: &'static str,
-            wifi_password: &'static str,
+            wifi_ssid: &str,
+            wifi_password: &str,
         ) -> Result<Board> {
             let sysloop = EspSystemEventLoop::take()?;
             let timer_service = EspTaskTimerService::new()?;
             let nvs = Some(EspDefaultNvsPartition::take()?);
 
-            let wifi: AsyncWifi<EspWifi<'static>> = wifi(
+            let wifi: AsyncWifi<EspWifi<'_>> = wifi(
                 wifi_ssid,
                 wifi_password,
                 wifi_modem,
@@ -93,9 +93,8 @@ mod private {
 
             for ds in ds18b20_pins {
                 let ds_driver = PinDriver::input_output_od(ds)?;
-                let one_wire_bus = one_wire_bus::OneWire::new(ds_driver).map_err(|e| {
-                    SmartPotError::OneWireError(format!("OneWire initializing error: {e:?}"))
-                })?;
+                let one_wire_bus = one_wire_bus::OneWire::new(ds_driver)
+                    .map_err(|e| SmartPotError::OneWireError(e.into()))?;
                 let onewire_ref = Rc::from(RefCell::from(one_wire_bus));
                 let ds18b20_sensors = Ds18B20Sensor::find_all(onewire_ref.clone())?;
                 let ds18b20_sensors = ds18b20_sensors

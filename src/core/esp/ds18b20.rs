@@ -55,9 +55,7 @@ mod private {
             while let Some((device_address, state)) = one_wire_bus
                 .borrow_mut()
                 .device_search(search_state.as_ref(), false, &mut delay)
-                .map_err(|e| {
-                    SmartPotError::OneWireError(format!("Error while searching devices: {e:?}"))
-                })?
+                .map_err(|e| SmartPotError::OneWireError(e.into()))?
             {
                 search_state = Some(state);
 
@@ -66,11 +64,8 @@ mod private {
                 }
 
                 log::trace!("Found ds18b20: {:?}", device_address);
-                let sensor = ds18b20::Ds18b20::new::<EspError>(device_address).map_err(|e| {
-                    SmartPotError::OneWireError(format!(
-                        "Error while getting {device_address:?} device: {e:?}"
-                    ))
-                })?;
+                let sensor = ds18b20::Ds18b20::new::<EspError>(device_address)
+                    .map_err(|e| SmartPotError::OneWireError(e.into()))?;
 
                 ds_sensors.push(sensor);
             }
@@ -115,20 +110,14 @@ mod private {
                 &mut self.one_wire_bus.borrow_mut(),
                 &mut delay,
             )
-            .map_err(|e| {
-                SmartPotError::OneWireError(format!(
-                    "Error while starting temperature measurment: {e:?}"
-                ))
-            })?;
+            .map_err(|e| SmartPotError::OneWireError(e.into()))?;
 
             ds18b20::Resolution::Bits12.delay_for_measurement_time(&mut delay);
 
             let sensor_data = self
                 .ds_address
                 .read_data(&mut self.one_wire_bus.borrow_mut(), &mut delay)
-                .map_err(|e| {
-                    SmartPotError::OneWireError(format!("Error while reading temperature: {e:?}"))
-                })?;
+                .map_err(|e| SmartPotError::OneWireError(e.into()))?;
 
             Ok(SensorData {
                 timestamp: chrono::Utc::now(),

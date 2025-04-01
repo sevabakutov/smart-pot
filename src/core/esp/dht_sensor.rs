@@ -77,9 +77,7 @@ mod private {
                             humidity: data.relative_humidity as f32,
                         }),
                     }),
-                    Err(err) => Err(SmartPotError::DhtError(format!(
-                        "Error while reading dht data: {err:?}"
-                    ))),
+                    Err(err) => Err(SmartPotError::DhtError(err.into())),
                 },
 
                 DhtType::Dht22 => match dht22::Reading::read(&mut delay, &mut self.pin_driver) {
@@ -90,9 +88,7 @@ mod private {
                             humidity: data.relative_humidity,
                         }),
                     }),
-                    Err(err) => Err(SmartPotError::DhtError(format!(
-                        "Error while reading dht data: {err:?}"
-                    ))),
+                    Err(err) => Err(SmartPotError::DhtError(err.into())),
                 },
             }
         }

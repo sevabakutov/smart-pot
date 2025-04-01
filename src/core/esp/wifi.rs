@@ -34,13 +34,13 @@ mod private {
     ///
     /// # Errors:
     /// The function may return errors if there is an issue with the Wi-Fi connection or related configurations.
-    pub async fn wifi(
-        ssid: &'static str,
-        password: &'static str,
+    pub async fn wifi<'a>(
+        ssid: &str,
+        password: &str,
         modem: impl Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
-        sysloop: &EspSystemEventLoop,
+        sysloop: &'a EspSystemEventLoop,
         nvs: Option<EspNvsPartition<NvsDefault>>,
-        timer_service: &EspTimerService<Task>,
+        timer_service: &'a EspTimerService<Task>,
     ) -> Result<AsyncWifi<EspWifi<'static>>> {
         let mut wifi = AsyncWifi::wrap(
             EspWifi::new(modem, sysloop.clone(), nvs)?,
@@ -62,11 +62,7 @@ mod private {
     }
 
     /// Internal helper function to configure and connect to a Wi-Fi network.
-    async fn connect(
-        wifi: &mut AsyncWifi<EspWifi<'static>>,
-        ssid: &'static str,
-        password: &'static str,
-    ) -> Result<()> {
+    async fn connect(wifi: &mut AsyncWifi<EspWifi<'_>>, ssid: &str, password: &str) -> Result<()> {
         let wifi_configuration: Configuration = Configuration::Client(ClientConfiguration {
             ssid: String::<32>::from_str(ssid).expect("Invalid wifi SSID"),
             bssid: None,
