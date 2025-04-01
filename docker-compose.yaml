@@ -1,9 +1,10 @@
-version: "3"
 services:
   esp:
     image: espressif/idf-rust:esp32s3_1.85.0.0
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
+    group_add:
+      - "${TTY_GROUP_ID}"
     volumes:
       - .:/home/smart-pot
     working_dir: /home/smart-pot
