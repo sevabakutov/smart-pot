@@ -1,8 +1,15 @@
+//!
+//! Error Handling Module
+//!
+
 mod private {
     use esp_idf_sys::EspError;
     use thiserror::Error;
 
     /// # SmartPotError
+    ///
+    /// Enum representing all possible errors in the SmartPot system. Each variant corresponds to a specific type of error,
+    /// such as IO errors, hardware communication issues, or data parsing errors.
     #[derive(Error, Debug)]
     pub enum SmartPotError {
         #[error("IO error:\n{0}")]
@@ -25,9 +32,6 @@ mod private {
 
         #[error("{0}")]
         ParsingError(String),
-
-        #[error("Error while parsing pin: \n{0}")]
-        PinParseError(String),
     }
 
     /// Shortcut for std::result::Result<T, SmartPotError>

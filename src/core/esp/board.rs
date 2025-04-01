@@ -1,3 +1,7 @@
+//!
+//!  Board module
+//! 
+
 mod private {
     use crate::core::esp::{wifi, Bh1750, DhtConfig, DhtSensor, Ds18B20Sensor, Sensor};
     use crate::core::{Result, SmartPotError};
@@ -13,12 +17,55 @@ mod private {
     };
     use std::{cell::RefCell, rc::Rc, time::Duration};
 
+    /// # Board
+    ///
+    /// Represents a board with supported sensors and a Wi-Fi module. This struct
+    /// encapsulates the sensors connected to the board as well as the Wi-Fi interface.
+    ///
+    /// ## Fields:
+    /// - `wifi`:  
+    ///   An instance of the `AsyncWifi` struct, responsible for managing the Wi-Fi connection.
+    /// - `sensors`:  
+    ///   A vector containing all sensors connected to the board, each implementing the `Sensor` trait.
+    ///
+    /// ## Usage
+    ///
+    /// `Board` obtained by calling the `init_board()` function.
     pub struct Board {
         pub wifi: AsyncWifi<EspWifi<'static>>,
         pub sensors: Vec<Box<dyn Sensor<'static>>>,
     }
 
     impl Board {
+        /// Initializes the board with connected sensors and establishes the Wi-Fi connection.
+        ///
+        /// This method configures the Wi-Fi connection, synchronizes NTP, and sets up sensors including
+        /// DS18B20, DHT, and BH1750 sensors if provided. I
+        ///
+        /// # Parameters:
+        /// - `ds18b20_pins`:  
+        ///   A vector of `AnyIOPin` pins connected to DS18B20 sensors (OneWire bus).
+        /// - `dht_configs`:  
+        ///   A vector of configuration structs for DHT sensors. Each config contains the pin number
+        ///   and sensor type (DHT11, DHT22).
+        /// - `bh1750_i2c`:  
+        ///   An optional `I2cDriver` for the BH1750 light sensor. If `None`, no BH1750 sensor is initialized.
+        /// - `wifi_modem`:  
+        ///   The modem used to manage the Wi-Fi connection.
+        /// - `wifi_ssid`:  
+        ///   The SSID of the Wi-Fi network.
+        /// - `wifi_password`:  
+        ///   The password for the Wi-Fi network.
+        ///
+        /// # Returns:
+        /// - `Result<Board>`:  
+        ///   A result containing the fully initialized `Board` instance if successful, or an error.
+        ///
+        /// # Errors:
+        /// This method may return errors in the following cases:
+        /// - Failed to initialize OneWire for DS18B20 sensors.
+        /// - Failed to configure any of the sensors.
+        /// - Failed to establish the Wi-Fi connection or synchronize NTP.
         pub async fn init_board(
             ds18b20_pins: Vec<AnyIOPin>,
             dht_configs: Vec<DhtConfig>,
