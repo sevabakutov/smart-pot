@@ -17,8 +17,17 @@ mod private {
         #[error("OneWire error:\n{0}")]
         OneWireError(String),
 
+        #[error("I2C error:\n{0}")]
+        I2cError(String),
+
+        #[error("Dht error:\n{0}")]
+        DhtError(String),
+
         #[error("{0}")]
-        ParsingError(String)
+        ParsingError(String),
+
+        #[error("Error while parsing pin: \n{0}")]
+        PinParseError(String),
     }
 
     /// Shortcut for std::result::Result<T, SmartPotError>

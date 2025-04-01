@@ -2,57 +2,70 @@ mod private {
     use crate::core::Result;
     use chrono::serde::ts_seconds;
     use chrono::{DateTime, Utc};
+    use esp_idf_hal::gpio::{AnyIOPin, InputOutput, PinDriver};
     use one_wire_bus::OneWire;
     use serde::Serialize;
-    use std::cell::RefCell;
-    use std::rc::Rc;
-    use esp_idf_hal::gpio::{InputOutput, InputPin, OutputPin, PinDriver};
 
     pub type OneWireType<T> = OneWire<PinDriver<'static, T, InputOutput>>;
 
-    /// # TemperatureSensorData
-    ///
-    /// Data from temperature sensor of ESP32.
+    pub struct DhtConfig {
+        pub pin: AnyIOPin,
+        pub dht_type: DhtType,
+    }
+
+    impl DhtConfig {
+        pub fn new(pin: AnyIOPin, dht_type: DhtType) -> Self {
+            DhtConfig { pin, dht_type }
+        }
+    }
+    pub enum DhtType {
+        Dht11,
+        Dht22,
+    }
+
     #[derive(Debug, Serialize)]
-    pub struct TemperatureSensorData {
+    pub struct TemperatureWithHumidity {
+        pub temperature: f32,
+        pub humidity: f32,
+    }
+
+    #[derive(Debug, Serialize)]
+    pub enum Telemetry {
+        Temperature(f32),
+        TemperatureWithHumidity(TemperatureWithHumidity),
+        LightValue(f32),
+    }
+
+    #[derive(Debug, Serialize)]
+    pub struct SensorData {
         #[serde(with = "ts_seconds")]
         pub timestamp: DateTime<Utc>,
-        pub temperature: f32,
+        pub telemetry: Telemetry,
     }
 
-    /// # Telemetry
-    ///
-    /// All device telemtry.
-    #[derive(Debug)]
-    pub struct Telemetry {
-        pub temperature: Option<TemperatureSensorData>,
-    }
+    pub trait Sensor<'a> {
+        fn get_name(&self) -> String;
 
-    pub trait Sensor {
-        type Pin: InputPin + OutputPin;
-
-        fn find_all(
-            one_wire_bus: Rc<RefCell<OneWireType<Self::Pin>>>
-        ) -> Result<Vec<Box<Self>>>
-        where
-            Self: Sized;
-
-        fn read_temperature(&self) -> Result<TemperatureSensorData>;
+        fn read_data(&mut self) -> Result<SensorData>;
     }
 }
 
 crate::mod_interface! {
     layer ds18b20;
+    layer dht_sensor;
     layer wifi;
+    layer bh1750;
     layer board;
 
     own use {
         Sensor,
-        OneWireType
+        OneWireType,
+        DhtType,
+        DhtConfig,
     };
 
     orphan use {
-        TemperatureSensorData,
+        SensorData,
         Telemetry,
     };
 }
