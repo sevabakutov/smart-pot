@@ -17,6 +17,9 @@ mod private {
         #[error("OneWire error:\n{0}")]
         OneWireError(String),
 
+        #[error("I2C error:\n{0}")]
+        I2cError(String),
+
         #[error("Dht error:\n{0}")]
         DhtError(String),
 

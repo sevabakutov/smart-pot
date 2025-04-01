@@ -7,7 +7,6 @@ mod private {
     use crate::core::Result;
     use embedded_svc::mqtt::client::QoS;
     use esp_idf_hal::delay::FreeRtos;
-    use esp_idf_hal::gpio::AnyIOPin;
     use esp_idf_svc::mqtt::client::EspAsyncMqttClient;
     use esp_idf_svc::mqtt::client::EspAsyncMqttConnection;
     use esp_idf_svc::timer::EspAsyncTimer;
@@ -27,7 +26,7 @@ mod private {
     /// device-to-cloud messages.
     pub async fn telemetry_task(
         client: &mut EspAsyncMqttClient,
-        sensors: &mut [Box<dyn Sensor<Pin = AnyIOPin>>],
+        sensors: &mut [Box<dyn Sensor<'_>>],
         timer: &mut EspAsyncTimer,
         topic: &str,
     ) -> Result<()> {

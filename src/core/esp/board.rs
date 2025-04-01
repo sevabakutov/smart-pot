@@ -1,7 +1,8 @@
 mod private {
-    use crate::core::esp::{wifi, DhtConfig, DhtSensor, Ds18B20Sensor, Sensor};
+    use crate::core::esp::{wifi, Bh1750, DhtConfig, DhtSensor, Ds18B20Sensor, Sensor};
     use crate::core::{Result, SmartPotError};
     use esp_idf_hal::gpio::{AnyIOPin, PinDriver};
+    use esp_idf_hal::i2c::I2cDriver;
     use esp_idf_hal::modem::Modem;
     use esp_idf_svc::sntp::{EspSntp, SyncStatus};
     use esp_idf_svc::{
@@ -12,24 +13,25 @@ mod private {
     };
     use std::{cell::RefCell, rc::Rc, time::Duration};
 
-    pub struct Board<'a> {
-        pub wifi: AsyncWifi<EspWifi<'a>>,
-        pub sensors: Vec<Box<dyn Sensor<Pin = AnyIOPin>>>,
+    pub struct Board {
+        pub wifi: AsyncWifi<EspWifi<'static>>,
+        pub sensors: Vec<Box<dyn Sensor<'static>>>,
     }
 
-    impl Board<'_> {
-        pub async fn init_board<'a>(
+    impl Board {
+        pub async fn init_board(
             ds18b20_pins: Vec<AnyIOPin>,
             dht_configs: Vec<DhtConfig>,
+            bh1750_i2c: Option<I2cDriver<'static>>,
             wifi_modem: Modem,
             wifi_ssid: &'static str,
             wifi_password: &'static str,
-        ) -> Result<Board<'a>> {
+        ) -> Result<Board> {
             let sysloop = EspSystemEventLoop::take()?;
             let timer_service = EspTaskTimerService::new()?;
             let nvs = Some(EspDefaultNvsPartition::take()?);
 
-            let wifi = wifi(
+            let wifi: AsyncWifi<EspWifi<'static>> = wifi(
                 wifi_ssid,
                 wifi_password,
                 wifi_modem,
@@ -40,7 +42,7 @@ mod private {
             .await?;
 
             let ntp = EspSntp::new_default()?;
-            let mut sensors: Vec<Box<dyn Sensor<Pin = AnyIOPin>>> = Vec::new();
+            let mut sensors: Vec<Box<dyn Sensor>> = Vec::new();
 
             for ds in ds18b20_pins {
                 let ds_driver = PinDriver::input_output_od(ds)?;
@@ -51,8 +53,8 @@ mod private {
                 let ds18b20_sensors = Ds18B20Sensor::find_all(onewire_ref.clone())?;
                 let ds18b20_sensors = ds18b20_sensors
                     .into_iter()
-                    .map(|s| s as Box<dyn Sensor<Pin = AnyIOPin>>)
-                    .collect::<Vec<Box<dyn Sensor<Pin = AnyIOPin>>>>();
+                    .map(|s| s as Box<dyn Sensor>)
+                    .collect::<Vec<Box<dyn Sensor>>>();
                 sensors.extend(ds18b20_sensors);
             }
 
@@ -63,6 +65,10 @@ mod private {
                 sensors.push(dht_sensor);
             }
 
+            if let Some(i2c) = bh1750_i2c {
+                let bh = Box::new(Bh1750::new(i2c, bh1750::Resolution::High));
+                sensors.push(bh);
+            }
             while ntp.get_sync_status() != SyncStatus::Completed {
                 std::thread::sleep(Duration::from_millis(20));
             }

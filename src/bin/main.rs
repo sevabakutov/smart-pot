@@ -2,8 +2,9 @@
 
 use core::pin::pin;
 use core::time::Duration;
-use std::collections::HashMap;
 
+use esp_idf_hal::i2c::config::Config;
+use esp_idf_hal::i2c::I2cDriver;
 use log::*;
 
 use smart_pot::core::azure::{generate_sas_token, IoTHub};
@@ -18,7 +19,7 @@ use esp_idf_svc::hal::task;
 use esp_idf_svc::log::EspLogger;
 use esp_idf_svc::timer::{EspAsyncTimer, EspTimerService};
 
-use esp_idf_hal::gpio::{AnyIOPin, IOPin};
+use esp_idf_hal::gpio::IOPin;
 use esp_idf_hal::prelude::Peripherals;
 // Environment vars or constants
 const SSID: &str = env!("WIFI_SSID");
@@ -49,17 +50,25 @@ async fn async_main() -> Result<()> {
             Ok(per) => per,
             Err(err) => {
                 log::error!("Error while getting peripherals: {err}");
+                timer.after(Duration::from_secs(5)).await?;
                 continue;
             }
         };
+
         let modem = peripherals.modem;
         let ds_pins = vec![peripherals.pins.gpio16.downgrade()];
         let dht_configs = vec![
             DhtConfig::new(peripherals.pins.gpio17.downgrade(), DhtType::Dht11),
             DhtConfig::new(peripherals.pins.gpio5.downgrade(), DhtType::Dht22),
         ];
+        let i2c = Some(I2cDriver::new(
+            peripherals.i2c0,
+            peripherals.pins.gpio21,
+            peripherals.pins.gpio22,
+            &Config::default(),
+        )?);
 
-        match Board::init_board(ds_pins, dht_configs, modem, SSID, PASS).await {
+        match Board::init_board(ds_pins, dht_configs, i2c, modem, SSID, PASS).await {
             Ok(board) => break board,
             Err(e) => {
                 error!("Error initializing board: {e:?}");
@@ -89,7 +98,7 @@ async fn async_main() -> Result<()> {
 async fn run(
     mut iothub: IoTHub,
     timer: &mut EspAsyncTimer,
-    sensors: &mut [Box<dyn Sensor<Pin = AnyIOPin>>],
+    sensors: &mut [Box<dyn Sensor<'_>>],
 ) -> Result<()> {
     let topic = format!("devices/{}/messages/events/", DEVICE_ID);
 

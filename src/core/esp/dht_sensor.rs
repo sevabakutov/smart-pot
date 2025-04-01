@@ -1,7 +1,7 @@
 mod private {
     use crate::core::esp::private::TemperatureWithHumidity;
     use crate::core::esp::{DhtType, Sensor};
-    use crate::core::{Result, SmartPotError, Telemetry, TemperatureSensorData};
+    use crate::core::{Result, SensorData, SmartPotError, Telemetry};
     use dht_sensor::*;
     use esp_idf_hal::gpio::{InputOutput, InputPin, OutputPin, PinDriver};
 
@@ -27,22 +27,20 @@ mod private {
         }
     }
 
-    impl<T> Sensor for DhtSensor<T>
+    impl<T> Sensor<'_> for DhtSensor<T>
     where
         T: InputPin + OutputPin,
     {
-        type Pin = T;
-
         fn get_name(&self) -> String {
             "DHT".to_string()
         }
 
-        fn read_data(&mut self) -> Result<TemperatureSensorData> {
+        fn read_data(&mut self) -> Result<SensorData> {
             let mut delay = esp_idf_hal::delay::Delay::new_default();
 
             match self.dht_type {
                 DhtType::Dht11 => match dht11::Reading::read(&mut delay, &mut self.pin_driver) {
-                    Ok(data) => Ok(TemperatureSensorData {
+                    Ok(data) => Ok(SensorData {
                         timestamp: chrono::Utc::now(),
                         telemetry: Telemetry::TemperatureWithHumidity(TemperatureWithHumidity {
                             temperature: data.temperature as f32,
@@ -55,7 +53,7 @@ mod private {
                 },
 
                 DhtType::Dht22 => match dht22::Reading::read(&mut delay, &mut self.pin_driver) {
-                    Ok(data) => Ok(TemperatureSensorData {
+                    Ok(data) => Ok(SensorData {
                         timestamp: chrono::Utc::now(),
                         telemetry: Telemetry::TemperatureWithHumidity(TemperatureWithHumidity {
                             temperature: data.temperature,

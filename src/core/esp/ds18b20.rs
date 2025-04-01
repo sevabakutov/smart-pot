@@ -1,8 +1,7 @@
 mod private {
-    use crate::core::esp::OneWireType;
-    use crate::core::esp::Sensor;
+    use crate::core::esp::{OneWireType, Sensor};
+    use crate::core::SensorData;
     use crate::core::Telemetry;
-    use crate::core::TemperatureSensorData;
     use crate::core::{Result, SmartPotError};
     use esp_idf_hal::gpio::{InputPin, OutputPin};
     use esp_idf_sys::EspError;
@@ -68,17 +67,15 @@ mod private {
         }
     }
 
-    impl<T> Sensor for Ds18B20Sensor<T>
+    impl<T> Sensor<'_> for Ds18B20Sensor<T>
     where
         T: InputPin + OutputPin,
     {
-        type Pin = T;
-
         fn get_name(&self) -> String {
             "Ds18B20".to_string()
         }
 
-        fn read_data(&mut self) -> Result<TemperatureSensorData> {
+        fn read_data(&mut self) -> Result<SensorData> {
             let mut delay = esp_idf_hal::delay::Delay::new_default();
 
             ds18b20::start_simultaneous_temp_measurement(
@@ -100,7 +97,7 @@ mod private {
                     SmartPotError::OneWireError(format!("Error while reading temperature: {e:?}"))
                 })?;
 
-            Ok(TemperatureSensorData {
+            Ok(SensorData {
                 timestamp: chrono::Utc::now(),
                 telemetry: Telemetry::Temperature(sensor_data.temperature),
             })
