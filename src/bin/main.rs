@@ -28,6 +28,9 @@ const PASS: &str = env!("WIFI_PASS");
 const HUB_NAME: &str = env!("IOT_HUB_NAME");
 const DEVICE_ID: &str = env!("DEVICE_ID");
 const SHARED_ACCESS_KEY: &str = env!("SHARED_ACCESS_KEY");
+const SCOPE_ID: &str = env!("SCOPE_ID");
+const REGISTRATION_ID: &str = env!("REGISTRATION_ID");
+const SHARED_DPS_ACCESS_KEY: &str = env!("SHARED_DPS_ACCESS_KEY");
 
 fn main() {
     esp_idf_svc::sys::link_patches();
@@ -84,11 +87,23 @@ async fn async_main() -> Result<()> {
         .as_secs()
         + 3600;
 
-    let sas_token = generate_sas_token(HUB_NAME, DEVICE_ID, SHARED_ACCESS_KEY, expiry_unix_ts);
+    // let sas_token = generate_sas_token(HUB_NAME, DEVICE_ID, SHARED_ACCESS_KEY, expiry_unix_ts);
+    // info!("SAS token generated. Expires at {expiry_unix_ts}");
+
+    // let iothub = IoTHub::new(HUB_NAME, DEVICE_ID, &sas_token)?;
+    // info!("IoTHub client created. Connecting...");
+
+    let sas_token = generate_sas_token_dps(
+        ID_SCOPE, 
+        REGISTRATION_ID, 
+        SHARED_DPS_ACCESS_KEY, 
+        expiry_unix_ts
+    );
     info!("SAS token generated. Expires at {expiry_unix_ts}");
 
-    let iothub = IoTHub::new(HUB_NAME, DEVICE_ID, &sas_token)?;
+    let iothub = IoTHub::dps(HUB_NAME, DEVICE_ID, REGISTRATION_ID, ID_SCOPE, sas_token)?;
     info!("IoTHub client created. Connecting...");
+
 
     run(iothub, &mut timer, &mut board.sensors).await?;
 
