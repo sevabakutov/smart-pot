@@ -6,3 +6,4 @@ device-cert.pem
 device.csr
 device.key
 .embuild
+DigiCertGlobalRootG2.cer
