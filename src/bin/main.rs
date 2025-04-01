@@ -2,6 +2,7 @@
 
 use core::pin::pin;
 use core::time::Duration;
+use std::collections::HashMap;
 
 use log::*;
 
@@ -51,7 +52,6 @@ async fn async_main() -> Result<()> {
                 continue;
             }
         };
-
         let modem = peripherals.modem;
         let ds_pin = Some(peripherals.pins.gpio16.downgrade());
         let dht_pin = peripherals.pins.gpio17.downgrade();

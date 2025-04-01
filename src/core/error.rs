@@ -22,6 +22,9 @@ mod private {
 
         #[error("{0}")]
         ParsingError(String),
+
+        #[error("Error while parsing pin: \n{0}")]
+        PinParseError(String),
     }
 
     /// Shortcut for std::result::Result<T, SmartPotError>
