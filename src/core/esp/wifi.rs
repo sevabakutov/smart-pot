@@ -1,3 +1,7 @@
+//!
+//! Wi-Fi Connection Module for SmartPot
+//!
+
 mod private {
     use crate::core::Result;
     use embedded_svc::wifi::{AuthMethod, ClientConfiguration, Configuration};
@@ -12,6 +16,24 @@ mod private {
     use heapless::String;
     use std::str::FromStr;
 
+    /// Connects to a Wi-Fi network with the specified SSID and password.
+    ///
+    /// This asynchronous function establishes a Wi-Fi connection using the provided SSID and password.
+    ///
+    /// # Parameters:
+    /// - `ssid`: The SSID of the Wi-Fi network to connect to.
+    /// - `password`: The password for the Wi-Fi network.
+    /// - `modem`: The modem to use for the Wi-Fi connection.
+    /// - `sysloop`: The system event loop for handling events.
+    /// - `nvs`: An optional NVS partition to store Wi-Fi settings.
+    /// - `timer_service`: The timer service for handling timed events.
+    ///
+    /// # Returns:
+    /// - `Result<AsyncWifi<EspWifi<'static>>>`: The function returns an instance of `AsyncWifi` wrapped around
+    ///   an `EspWifi` object, which can be used for further Wi-Fi operations.
+    ///
+    /// # Errors:
+    /// The function may return errors if there is an issue with the Wi-Fi connection or related configurations.
     pub async fn wifi(
         ssid: &'static str,
         password: &'static str,
@@ -39,6 +61,7 @@ mod private {
         Ok(wifi)
     }
 
+    /// Internal helper function to configure and connect to a Wi-Fi network.
     async fn connect(
         wifi: &mut AsyncWifi<EspWifi<'static>>,
         ssid: &'static str,
