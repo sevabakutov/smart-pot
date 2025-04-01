@@ -53,11 +53,13 @@ async fn async_main() -> Result<()> {
             }
         };
         let modem = peripherals.modem;
-        let ds_pin = Some(peripherals.pins.gpio16.downgrade());
-        let dht_pin = peripherals.pins.gpio17.downgrade();
+        let ds_pins = vec![peripherals.pins.gpio16.downgrade()];
+        let dht_configs = vec![
+            DhtConfig::new(peripherals.pins.gpio17.downgrade(), DhtType::Dht11),
+            DhtConfig::new(peripherals.pins.gpio5.downgrade(), DhtType::Dht22),
+        ];
 
-        let dht_config = Some(DhtConfig::new(dht_pin, DhtType::Dht11));
-        match Board::init_board(ds_pin, dht_config, modem, SSID, PASS).await {
+        match Board::init_board(ds_pins, dht_configs, modem, SSID, PASS).await {
             Ok(board) => break board,
             Err(e) => {
                 error!("Error initializing board: {e:?}");

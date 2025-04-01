@@ -19,8 +19,8 @@ mod private {
 
     impl Board<'_> {
         pub async fn init_board<'a>(
-            ds18b20_pin: Option<AnyIOPin>,
-            dht_config: Option<DhtConfig>,
+            ds18b20_pins: Vec<AnyIOPin>,
+            dht_configs: Vec<DhtConfig>,
             wifi_modem: Modem,
             wifi_ssid: &'static str,
             wifi_password: &'static str,
@@ -42,8 +42,8 @@ mod private {
             let ntp = EspSntp::new_default()?;
             let mut sensors: Vec<Box<dyn Sensor<Pin = AnyIOPin>>> = Vec::new();
 
-            if let Some(ds_pin) = ds18b20_pin {
-                let ds_driver = PinDriver::input_output_od(ds_pin)?;
+            for ds in ds18b20_pins {
+                let ds_driver = PinDriver::input_output_od(ds)?;
                 let one_wire_bus = one_wire_bus::OneWire::new(ds_driver).map_err(|e| {
                     SmartPotError::OneWireError(format!("OneWire initializing error: {e:?}"))
                 })?;
@@ -56,9 +56,9 @@ mod private {
                 sensors.extend(ds18b20_sensors);
             }
 
-            if let Some(config) = dht_config {
-                let dht_driver = PinDriver::input_output_od(config.pin)?;
-                let dht_sensor = Box::new(DhtSensor::new(dht_driver, config.dht_type));
+            for dht in dht_configs {
+                let dht_driver = PinDriver::input_output_od(dht.pin)?;
+                let dht_sensor = Box::new(DhtSensor::new(dht_driver, dht.dht_type));
 
                 sensors.push(dht_sensor);
             }
