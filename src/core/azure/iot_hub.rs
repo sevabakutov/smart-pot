@@ -22,17 +22,24 @@ mod private {
     }
 
     impl IoTHub {
-        /// Creates a new Mqtt Client with SAS auth.
+        /// Creates a new Mqtt Client with SAS auth.7
         pub fn new(
-            hub_name: &str, 
+            host_name: &str, 
             device_id: &str, 
             sas_token: &str,
         ) -> Result<Self> {
             set_global_ca_store()?;
             
             let broker_url = format!("mqtts://{}.azure-devices.net:8883", hub_name);
-            let username =
-                format!("{hub_name}.azure-devices.net/{device_id}/?api-version=2021-06-30");
+            let username = format!("{host_name}/{device_id}/?api-version=2021-06-30");
+            let topic = format!("devices/{device_id}/messages/events/");
+
+            let lwt = LwtConfiguration {
+                topic: topic.as_str(),
+                payload: &[1, 2, 3],
+                qos: QoS::AtMostOnce,
+                retain: true
+            };
 
             let mqtt_config = MqttClientConfiguration {
                 protocol_version: Some(MqttProtocolVersion::V3_1_1),
@@ -42,6 +49,7 @@ mod private {
 
                 use_global_ca_store: true,
                 crt_bundle_attach: None,
+                lwt: Some(lwt),
 
                 keep_alive_interval: Some(Duration::from_secs(60)),
                 reconnect_timeout: Some(Duration::from_secs(5)),

@@ -6,32 +6,32 @@ mod private {
 
     const AZURE_IOT_CA_CERT: &[u8] = include_bytes!("../../../DigiCertGlobalRootG2.pem");
     
-    // /// Generate an Azure IoT SAS token
-    // pub fn generate_sas_token(
-    //     hub_name: &str,
-    //     device_id: &str,
-    //     key: &str,
-    //     expiry_unix_ts: u64,
-    // ) -> String {
-    //     let sr = format!("{hub_name}.azure-devices.net/devices/{device_id}");
+    /// Generate an Azure IoT Hub SAS token
+    pub fn generate_sas_token(
+        host_name: &str,
+        device_id: &str,
+        key: &str,
+        expiry_unix_ts: u64,
+    ) -> String {
+        let sr = format!("{}/devices/{}", host_name, device_id);
 
-    //     let to_sign = format!("{sr}\n{expiry_unix_ts}");
-
-    //     let key_bytes = BASE64_STANDARD.decode(key).unwrap();
-
-    //     let mut mac = Hmac::<Sha256>::new_from_slice(&key_bytes).unwrap();
-    //     mac.update(to_sign.as_bytes());
-    //     let signature = mac.finalize().into_bytes();
-
-    //     let sig_base64 = BASE64_STANDARD.encode(signature);
-
-    //     format!(
-    //         "SharedAccessSignature sr={}&sig={}&se={}",
-    //         encode(&sr),
-    //         encode(&sig_base64),
-    //         expiry_unix_ts
-    //     )
-    // }
+        let to_sign = format!("{}\n{}", sr, expiry_unix_ts);
+    
+        let key_bytes = BASE64_STANDARD.decode(key).expect("Invalid base64 in key");
+    
+        let mut mac = Hmac::<Sha256>::new_from_slice(&key_bytes).unwrap();
+        mac.update(to_sign.as_bytes());
+        let signature = mac.finalize().into_bytes();
+    
+        let sig_base64 = BASE64_STANDARD.encode(signature);
+    
+        format!(
+            "SharedAccessSignature sr={}&sig={}&se={}",
+            encode(&sr),
+            encode(&sig_base64),
+            expiry_unix_ts
+        )
+    }
 
     pub fn generate_sas_token_dps(
         id_scope: &str,
