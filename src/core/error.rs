@@ -37,6 +37,9 @@ mod private {
 
         #[error("{0}")]
         ParsingError(String),
+
+        #[error("{0}")]
+        DPSError(String),
     }
 
     /// # DhtErrorWrapper

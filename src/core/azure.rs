@@ -4,6 +4,8 @@ mod private {
     use sha2::Sha256;
     use urlencoding::encode;
 
+    const AZURE_IOT_CA_CERT: &[u8] = include_bytes!("../../../DigiCertGlobalRootG2.pem");
+    
     // /// Generate an Azure IoT SAS token
     // pub fn generate_sas_token(
     //     hub_name: &str,
@@ -58,13 +60,43 @@ mod private {
             expiry_unix_ts
         )
     }
+
+    pub fn set_global_ca_store() -> Result<()> {
+        let status_code = unsafe { esp_tls_init_global_ca_store() };
+
+        if status_code != ESP_OK {
+            return Err(SmartPotError::CAError(
+                "Failed to initialize ca store. Status code: {status_code}".to_string(),
+            ));
+        }
+        let cstr = std::ffi::CString::new(AZURE_IOT_CA_CERT)
+            .expect("Certificate string contained internal NUL byte");
+
+        let status_code = unsafe {
+            esp_tls_set_global_ca_store(
+                cstr.as_ptr() as *const u8,
+                cstr.as_bytes_with_nul().len() as u32,
+            )
+        };
+
+        if status_code != ESP_OK {
+            return Err(SmartPotError::CAError(format!(
+                "failed to set global ca store (err={})",
+                status_code
+            )));
+        };
+
+        Ok(())
+    }
 }
 
 crate::mod_interface!{
     layer iot_hub;
+    layer dps;
 
     own use {
         // generate_sas_token,
-        generate_sas_token_dps
+        generate_sas_token_dps,
+        set_global_ca_store
     };
 }
